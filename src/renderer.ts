@@ -1,9 +1,7 @@
 // TODO https://electronjs.org/docs/tutorial/security
 // TODO select query box on load/focus
 // TODO allow selecting other candidates
-// TODO rename to catalyst
 // TODO icon
-// TODO package and install
 // TODO blur on enter
 // TODO read config from file
 // TODO calc / replace $query$ keyword
