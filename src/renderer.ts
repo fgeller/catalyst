@@ -65,7 +65,7 @@ const config: Config = {
       key: 'p',
       unfiltered: false,
       command: '/Users/fgeller/bin/pass-enumerate',
-      action: '/usr/local/bin/pass show -c "%match%"',
+      action: '/Users/fgeller/bin/pass-copy "%match%"',
     },
     {
       name: 'calc',
@@ -182,11 +182,17 @@ async function trigger(): Promise<void> {
 
   const selected = candidates[0];
   console.log(`triggering action on candidate`, selected);
-  const p = exec(selected.action).then((out: execResult) => {
+
+  const success = (out: execResult) => {
     console.log('triggered action result', out);
     domQuery.value = '';
     setCandidates([]);
-  });
+  };
+  const fail = (reason: any) => {
+    console.error(`failed to execute action for candidate`, selected, reason);
+  };
+
+  exec(selected.action).then(success, fail);
 }
 
 async function queryKeyUp(ev: KeyboardEvent): Promise<void> {
