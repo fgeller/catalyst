@@ -1,12 +1,9 @@
 // TODO https://electronjs.org/docs/tutorial/security
-// TODO select query box on load/focus
 // TODO allow selecting other candidates
 // TODO icon
-// TODO blur on enter
+// TODO blur on enter/trigger
 // TODO read config from file
-// TODO calc / replace $query$ keyword
 // TODO candidates wrapper to add and remove single dom node
-// TODO right align placeholder
 
 import './index.css';
 const util = require('util');
@@ -61,21 +58,21 @@ const config: Config = {
       unfiltered: false,
       command:
         '/usr/local/bin/fd -d 2 .app$ /Applications /System/Applications /Users/fgeller/Applications',
-      action: '/usr/bin/open -a',
+      action: '/usr/bin/open -a "%match%"',
     },
     {
       name: 'pass',
       key: 'p',
       unfiltered: false,
       command: '/Users/fgeller/bin/pass-enumerate',
-      action: '/usr/local/bin/pass show -c',
+      action: '/usr/local/bin/pass show -c "%match%"',
     },
     {
       name: 'calc',
       key: 'c',
       unfiltered: true,
-      command: '/Users/fgeller/bin/calc $query$',
-      action: '',
+      command: '/Users/fgeller/bin/calc %query%',
+      action: 'echo %match% | /usr/bin/pbcopy',
     },
   ],
 };
@@ -104,18 +101,23 @@ function filter(q: string, candidates: string[], src: Source): string[] {
   return matched;
 }
 
+function newCandidate(value: string, src: Source): Candidate {
+  return {
+    value: value,
+    source: src.name,
+    action: src.action.replace('%match%', value),
+  };
+}
+
 async function findCandidates(q: string): Promise<Candidate[]> {
   let all: Candidate[] = [];
   let ps = config.sources.map(src => {
-    return exec(src.command).then((out: execResult) => {
+    const cmd = src.command.replace('%query%', q);
+    return exec(cmd).then((out: execResult) => {
       const raw = out.stdout.split('\n');
-      let filtered = filter(q, raw, src);
-      let limited = filtered.slice(0, 4);
-
-      const cs = limited.map(v => {
-        return {value: v, source: src.name, action: `${src.action} "${v}"`};
-      });
-
+      const filtered = filter(q, raw, src);
+      const limited = filtered.slice(0, 4);
+      const cs = limited.map(v => newCandidate(v, src));
       all = all.concat(cs);
     });
   });
@@ -172,14 +174,16 @@ function setCandidates(cs: Candidate[]): void {
   updateWindowBounds();
 }
 
-async function triggerSelected(): Promise<void> {
+async function trigger(): Promise<void> {
   if (candidates.length == 0) {
     console.log(`no candidates available, nothing to trigger`);
     return;
   }
 
   const selected = candidates[0];
+  console.log(`triggering action on candidate`, selected);
   const p = exec(selected.action).then((out: execResult) => {
+    console.log('triggered action result', out);
     domQuery.value = '';
     setCandidates([]);
   });
@@ -187,7 +191,7 @@ async function triggerSelected(): Promise<void> {
 
 async function queryKeyUp(ev: KeyboardEvent): Promise<void> {
   if (ev.key === 'Enter') {
-    await triggerSelected();
+    await trigger();
     return;
   }
 
@@ -200,3 +204,4 @@ async function queryKeyUp(ev: KeyboardEvent): Promise<void> {
 }
 
 domQuery.addEventListener('keyup', queryKeyUp);
+domQuery.focus();

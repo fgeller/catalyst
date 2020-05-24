@@ -17,6 +17,10 @@ body {
     font-size: 1rem;
 }
 
+#query-input::placeholder {
+    text-align: right;
+}
+
 #query-candidates {
 }
 
