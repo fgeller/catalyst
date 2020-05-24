@@ -3,7 +3,6 @@
 // TODO icon
 // TODO blur on enter/trigger
 // TODO read config from file
-// TODO candidates wrapper to add and remove single dom node
 
 import './index.css';
 const util = require('util');
@@ -109,7 +108,7 @@ function newCandidate(value: string, src: Source): Candidate {
   };
 }
 
-async function findCandidates(q: string): Promise<Candidate[]> {
+function findCandidates(q: string): Promise<Candidate[]> {
   let all: Candidate[] = [];
   let ps = config.sources.map(src => {
     const cmd = src.command.replace('%query%', q);
@@ -143,61 +142,56 @@ function getQueryWindow(): BrowserWindow {
   return wins[0];
 }
 
-function clearCandidates(): void {
-  while (domCandidates.firstChild) {
-    domCandidates.removeChild(domCandidates.lastChild);
-  }
-}
-
-async function updateCandidates(event: KeyboardEvent): Promise<void> {
-  const cs = await findCandidates(domQuery.value);
-
-  let ns: HTMLDivElement[] = [];
-  for (const c of cs) {
-    const o = document.createElement('div') as HTMLDivElement;
-    o.textContent = c.value;
-    ns.push(o);
-  }
-
-  setCandidates(cs);
-
-  for (let i = 0; i < ns.length; i++) {
-    domCandidates.appendChild(ns[i]);
-  }
-
-  updateWindowBounds();
+function updateCandidates(event: KeyboardEvent): Promise<void> {
+  const q = domQuery.value;
+  const fail = (reason: any) => console.error('update failure', reason);
+  return findCandidates(q).then(setCandidates, fail);
 }
 
 function setCandidates(cs: Candidate[]): void {
   candidates = cs;
-  clearCandidates();
+
+  const container = document.createElement('div') as HTMLDivElement;
+  for (const c of cs) {
+    const o = document.createElement('div') as HTMLDivElement;
+    o.textContent = c.value;
+    container.appendChild(o);
+  }
+
+  while (domCandidates.firstChild) {
+    domCandidates.removeChild(domCandidates.lastChild);
+  }
+
+  if (cs.length > 0) {
+    domCandidates.appendChild(container);
+  }
+
   updateWindowBounds();
 }
 
-async function trigger(): Promise<void> {
+function trigger(): Promise<void> {
   if (candidates.length == 0) {
     console.log(`no candidates available, nothing to trigger`);
-    return;
+    return Promise.resolve();
   }
 
   const selected = candidates[0];
-  console.log(`triggering action on candidate`, selected);
 
-  const success = (out: execResult) => {
-    console.log('triggered action result', out);
-    domQuery.value = '';
-    setCandidates([]);
-  };
-  const fail = (reason: any) => {
-    console.error(`failed to execute action for candidate`, selected, reason);
-  };
+  setCandidates([]);
+  domQuery.value = '';
 
-  exec(selected.action).then(success, fail);
+  const success = (out: execResult) => console.log('trigger result', out);
+  const fail = (reason: any) => console.error(`trigger fail`, selected, reason);
+  return exec(selected.action).then(success, fail);
 }
 
-async function queryKeyUp(ev: KeyboardEvent): Promise<void> {
+function queryKeyUp(ev: KeyboardEvent): Promise<void> {
+  if (ev.key === 'Control' || ev.key === 'Meta') {
+    return;
+  }
+
   if (ev.key === 'Enter') {
-    await trigger();
+    trigger();
     return;
   }
 
@@ -206,7 +200,7 @@ async function queryKeyUp(ev: KeyboardEvent): Promise<void> {
     return;
   }
 
-  await updateCandidates(ev);
+  updateCandidates(ev);
 }
 
 domQuery.addEventListener('keyup', queryKeyUp);
