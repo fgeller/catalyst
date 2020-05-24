@@ -7,7 +7,6 @@
 // TODO calc / replace $query$ keyword
 // TODO candidates wrapper to add and remove single dom node
 // TODO right align placeholder
-// TODO shortcut
 
 import './index.css';
 const util = require('util');
