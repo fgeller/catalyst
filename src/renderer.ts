@@ -1,8 +1,8 @@
 // TODO https://electronjs.org/docs/tutorial/security
-// TODO allow selecting other candidates
 // TODO icon
 // TODO blur on enter/trigger
 // TODO read config from file
+// TODO event queue
 
 import './index.css';
 const util = require('util');
@@ -46,8 +46,10 @@ interface BrowserWindow {
 // globals
 
 let domQuery = document.getElementById('query-input') as HTMLInputElement;
-let domCandidates = document.getElementById('query-candidates');
+let domResult = document.getElementById('query-result');
 let candidates: Candidate[] = [];
+let domCandidates: HTMLDivElement[] = [];
+let selected: number = 0;
 
 const config: Config = {
   sources: [
@@ -152,18 +154,24 @@ function setCandidates(cs: Candidate[]): void {
   candidates = cs;
 
   const container = document.createElement('div') as HTMLDivElement;
-  for (const c of cs) {
+  domCandidates = [];
+  selected = 0;
+  for (let i = 0; i < cs.length; i++) {
     const o = document.createElement('div') as HTMLDivElement;
-    o.textContent = c.value;
+    o.textContent = cs[i].value;
+    if (i == selected) {
+      o.classList.add('selected');
+    }
+    domCandidates.push(o);
     container.appendChild(o);
   }
 
-  while (domCandidates.firstChild) {
-    domCandidates.removeChild(domCandidates.lastChild);
+  while (domResult.firstChild) {
+    domResult.removeChild(domResult.lastChild);
   }
 
   if (cs.length > 0) {
-    domCandidates.appendChild(container);
+    domResult.appendChild(container);
   }
 
   updateWindowBounds();
@@ -175,24 +183,61 @@ function trigger(): Promise<void> {
     return Promise.resolve();
   }
 
-  const selected = candidates[0];
+  const sc = candidates[selected];
 
   setCandidates([]);
   domQuery.value = '';
 
   const success = (out: execResult) => console.log('trigger result', out);
-  const fail = (reason: any) => console.error(`trigger fail`, selected, reason);
-  return exec(selected.action).then(success, fail);
+  const fail = (reason: any) => console.error(`trigger fail`, sc, reason);
+  return exec(sc.action).then(success, fail);
+}
+
+function markSelected() {
+  console.log(`marking selected ${selected} of ${domCandidates.length}`);
+  for (let i = 0; i < domCandidates.length; i++) {
+    const c = domCandidates[i];
+    if (i == selected && !c.classList.contains('selected')) {
+      c.classList.add('selected');
+    } else {
+      c.classList.remove('selected');
+    }
+  }
+}
+
+function select(ev: KeyboardEvent): Promise<void> {
+  console.log('select', ev);
+  switch (ev.key) {
+    case 'ArrowLeft':
+    case 'ArrowUp':
+      if (selected == 0) return;
+      selected -= 1;
+      markSelected();
+      break;
+    case 'ArrowRight':
+    case 'ArrowDown':
+      if (selected >= domCandidates.length - 1) return;
+      selected += 1;
+      markSelected();
+      break;
+  }
+  return Promise.resolve();
 }
 
 function queryKeyUp(ev: KeyboardEvent): Promise<void> {
-  if (ev.key === 'Control' || ev.key === 'Meta') {
-    return;
-  }
+  switch (ev.key) {
+    case 'Control':
+    case 'Meta':
+      return;
 
-  if (ev.key === 'Enter') {
-    trigger();
-    return;
+    case 'Enter':
+      return trigger();
+
+    case 'ArrowDown':
+    case 'ArrowRight':
+    case 'ArrowUp':
+    case 'ArrowLeft':
+      return select(ev);
   }
 
   if (domQuery.value.trim() == '') {
@@ -200,6 +245,7 @@ function queryKeyUp(ev: KeyboardEvent): Promise<void> {
     return;
   }
 
+  console.log('queryKeyUp', ev);
   updateCandidates(ev);
 }
 
