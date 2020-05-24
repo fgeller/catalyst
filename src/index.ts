@@ -13,6 +13,7 @@ const createWindow = () => {
     width: 400,
     webPreferences: {
       nodeIntegration: true,
+      enableRemoteModule: true,
     },
     title: 'launcher',
     frame: false,
