@@ -218,6 +218,9 @@ function queryKeyUp(ev: KeyboardEvent): Promise<void> {
   switch (ev.key) {
     case 'Control':
     case 'Meta':
+    case 'Alt':
+    case 'Tab':
+    case 'Escape':
       return;
 
     case 'Enter':
