@@ -1,5 +1,4 @@
 // TODO https://electronjs.org/docs/tutorial/security
-// TODO blur on enter/trigger
 // TODO read config from file
 // TODO event queue
 
@@ -40,6 +39,7 @@ interface WindowBounds {
 
 interface BrowserWindow {
   setBounds(bounds: WindowBounds, animate?: boolean): void;
+  hide(): void;
 }
 
 // globals
@@ -116,6 +116,10 @@ function findCandidates(q: string): Promise<Candidate[]> {
   return Promise.all(ps).then(_ => all.slice(0, 5));
 }
 
+function hideWindow(): void {
+  getQueryWindow().hide();
+}
+
 function updateWindowBounds(): void {
   let height = 58;
   height += candidates.length * 41;
@@ -176,11 +180,14 @@ function trigger(): Promise<void> {
   }
 
   const sc = candidates[selected];
+  domQuery.readOnly = true;
 
-  setCandidates([]);
-  domQuery.value = '';
-
-  const success = (out: execResult) => {};
+  const success = (out: execResult) => {
+    setCandidates([]);
+    domQuery.value = '';
+    domQuery.readOnly = false;
+    hideWindow();
+  };
   const fail = (reason: any) => console.error(`trigger fail`, sc, reason);
   return exec(sc.action).then(success, fail);
 }

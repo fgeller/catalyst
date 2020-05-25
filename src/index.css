@@ -28,6 +28,11 @@ body {
     outline: none;
 }
 
+#query-input[readonly] {
+    background: #CFD8DC;
+    color: #546E7A;
+}
+
 #query-input::placeholder {
     text-align: right;
     font-size: 1rem;
