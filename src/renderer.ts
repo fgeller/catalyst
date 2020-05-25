@@ -2,7 +2,6 @@
 // TODO blur on enter/trigger
 // TODO read config from file
 // TODO event queue
-// TODO only show calc when calculation
 
 import './index.css';
 const util = require('util');
@@ -54,11 +53,10 @@ let selected: number = 0;
 const config: Config = {
   sources: [
     {
-      name: 'osx-applications',
+      name: 'apps',
       key: 'a',
       unfiltered: false,
-      command:
-        '/usr/local/bin/fd -d 2 .app$ /Applications /System/Applications /Users/fgeller/Applications',
+      command: '/Users/fgeller/bin/list-apps',
       action: '/usr/bin/open -a "%match%"',
     },
     {
@@ -72,7 +70,7 @@ const config: Config = {
       name: 'calc',
       key: 'c',
       unfiltered: true,
-      command: '/Users/fgeller/bin/calc %query%',
+      command: '/Users/fgeller/bin/calc "%query%"',
       action: 'echo %match% | /usr/bin/pbcopy',
     },
   ],
@@ -81,21 +79,13 @@ const config: Config = {
 function filter(q: string, candidates: string[], src: Source): string[] {
   let result: string[] = candidates.map(v => v.trim()).filter(v => v != '');
 
-  if (src.unfiltered) {
-    return result;
-  }
+  if (src.unfiltered) return result;
 
   let matched: string[] = [];
-  let patterns: string[] = q.split(' ').map(v => {
-    return v.toLowerCase();
-  });
-  for (const cand of result) {
-    if (
-      patterns.every((p, i, all) => {
-        return cand.toLowerCase().includes(p);
-      })
-    ) {
-      matched.push(cand);
+  let patterns: string[] = q.split(' ').map(v => v.toLowerCase());
+  for (const c of result) {
+    if (patterns.every((p, i, all) => c.toLowerCase().includes(p))) {
+      matched.push(c);
     }
   }
 
@@ -123,18 +113,12 @@ function findCandidates(q: string): Promise<Candidate[]> {
     });
   });
 
-  return Promise.all(ps).then(_ => {
-    return all.slice(0, 5);
-  });
+  return Promise.all(ps).then(_ => all.slice(0, 5));
 }
 
 function updateWindowBounds(): void {
-  let height = 79;
-  height += candidates.length * 40;
-  if (candidates.length > 0) {
-    height += 9;
-  }
-
+  let height = 58;
+  height += candidates.length * 41;
   const win = getQueryWindow();
   win.setBounds({height: height}, true);
 }
@@ -154,25 +138,33 @@ function setCandidates(cs: Candidate[]): void {
   candidates = cs;
 
   const container = document.createElement('div') as HTMLDivElement;
+  container.classList.add('container');
+
   domCandidates = [];
   selected = 0;
+
   for (let i = 0; i < cs.length; i++) {
     const o = document.createElement('div') as HTMLDivElement;
-    o.textContent = cs[i].value;
-    if (i == selected) {
-      o.classList.add('selected');
-    }
+    o.classList.add('candidate');
+    if (i == selected) o.classList.add('selected');
+
+    const v = document.createElement('div') as HTMLDivElement;
+    v.textContent = cs[i].value;
+    v.classList.add('value');
+    o.appendChild(v);
+
+    const s = document.createElement('div') as HTMLDivElement;
+    s.textContent = cs[i].source;
+    s.classList.add('source');
+    o.appendChild(s);
+
     domCandidates.push(o);
     container.appendChild(o);
   }
 
-  while (domResult.firstChild) {
-    domResult.removeChild(domResult.lastChild);
-  }
+  while (domResult.firstChild) domResult.removeChild(domResult.lastChild);
 
-  if (cs.length > 0) {
-    domResult.appendChild(container);
-  }
+  if (cs.length > 0) domResult.appendChild(container);
 
   updateWindowBounds();
 }
@@ -188,13 +180,12 @@ function trigger(): Promise<void> {
   setCandidates([]);
   domQuery.value = '';
 
-  const success = (out: execResult) => console.log('trigger result', out);
+  const success = (out: execResult) => {};
   const fail = (reason: any) => console.error(`trigger fail`, sc, reason);
   return exec(sc.action).then(success, fail);
 }
 
 function markSelected() {
-  console.log(`marking selected ${selected} of ${domCandidates.length}`);
   for (let i = 0; i < domCandidates.length; i++) {
     const c = domCandidates[i];
     if (i == selected && !c.classList.contains('selected')) {
@@ -206,7 +197,6 @@ function markSelected() {
 }
 
 function select(ev: KeyboardEvent): Promise<void> {
-  console.log('select', ev);
   switch (ev.key) {
     case 'ArrowLeft':
     case 'ArrowUp':
@@ -245,7 +235,6 @@ function queryKeyUp(ev: KeyboardEvent): Promise<void> {
     return;
   }
 
-  console.log('queryKeyUp', ev);
   updateCandidates(ev);
 }
 

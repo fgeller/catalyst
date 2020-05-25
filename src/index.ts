@@ -7,7 +7,7 @@ if (require('electron-squirrel-startup')) {
 
 const createWindow = () => {
   const mainWindow = new BrowserWindow({
-    height: 79,
+    height: 58,
     width: 400,
     webPreferences: {
       nodeIntegration: true,
@@ -23,11 +23,8 @@ const createWindow = () => {
 
 function activate(): void {
   const wins = BrowserWindow.getAllWindows();
-  if (wins.length === 0) {
-    createWindow();
-  } else {
-    wins[0].show();
-  }
+  if (wins.length === 0) createWindow();
+  else wins[0].show();
 }
 
 function ready(): void {
@@ -36,9 +33,7 @@ function ready(): void {
 }
 
 function quit(): void {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  if (process.platform !== 'darwin') app.quit();
 }
 
 app.on('window-all-closed', quit);
