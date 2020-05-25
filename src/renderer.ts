@@ -1,8 +1,8 @@
 // TODO https://electronjs.org/docs/tutorial/security
-// TODO icon
 // TODO blur on enter/trigger
 // TODO read config from file
 // TODO event queue
+// TODO only show calc when calculation
 
 import './index.css';
 const util = require('util');
