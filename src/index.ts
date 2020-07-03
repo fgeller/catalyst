@@ -29,6 +29,10 @@ function activate(): void {
 
 function ready(): void {
   globalShortcut.register('CommandOrControl+Space', activate);
+
+  if (app.dock) {
+    app.dock.hide();
+  }
   createWindow();
 }
 

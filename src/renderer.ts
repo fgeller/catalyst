@@ -1,6 +1,5 @@
 // TODO https://electronjs.org/docs/tutorial/security
 // TODO read config from file
-// TODO event queue
 
 import './index.css';
 const util = require('util');
@@ -39,12 +38,14 @@ interface WindowBounds {
 
 interface BrowserWindow {
   setBounds(bounds: WindowBounds, animate?: boolean): void;
+  getContentSize(): number[];
   hide(): void;
 }
 
 // globals
 
 let domQuery = document.getElementById('query-input') as HTMLInputElement;
+let domEchoArea = document.getElementById('echo-area') as HTMLInputElement;
 let domResult = document.getElementById('query-result');
 let candidates: Candidate[] = [];
 let domCandidates: HTMLDivElement[] = [];
@@ -57,7 +58,7 @@ const config: Config = {
       key: 'a',
       unfiltered: false,
       command: '/Users/fgeller/bin/list-apps',
-      action: '/usr/bin/open -a "%match%"',
+      action: '/usr/bin/open -a "%match%".app',
     },
     {
       name: 'pass',
@@ -105,6 +106,7 @@ function findCandidates(q: string): Promise<Candidate[]> {
   let ps = config.sources.map(src => {
     const cmd = src.command.replace('%query%', q);
     return exec(cmd).then((out: execResult) => {
+      // TODO echo stdout/stderr?
       const raw = out.stdout.split('\n');
       const filtered = filter(q, raw, src);
       const limited = filtered.slice(0, 4);
@@ -122,7 +124,16 @@ function hideWindow(): void {
 
 function updateWindowBounds(): void {
   let height = 58;
-  height += candidates.length * 41;
+  if (candidates.length > 0) {
+    height += Math.round(
+      candidates.length * (domCandidates[0].clientHeight + 5.4)
+    );
+  }
+
+  if ('block' === domEchoArea.style.display) {
+    height += domEchoArea.clientHeight;
+  }
+
   const win = getQueryWindow();
   win.setBounds({height: height}, true);
 }
@@ -134,8 +145,12 @@ function getQueryWindow(): BrowserWindow {
 
 function updateCandidates(event: KeyboardEvent): Promise<void> {
   const q = domQuery.value;
-  const fail = (reason: any) => console.error('update failure', reason);
-  return findCandidates(q).then(setCandidates, fail);
+  const ctx: any = {
+    description: 'failed to update the candidates',
+    query: q,
+  };
+
+  return findCandidates(q).then(setCandidates, errorHandler(ctx));
 }
 
 function setCandidates(cs: Candidate[]): void {
@@ -188,8 +203,35 @@ function trigger(): Promise<void> {
     domQuery.readOnly = false;
     hideWindow();
   };
-  const fail = (reason: any) => console.error(`trigger fail`, sc, reason);
-  return exec(sc.action).then(success, fail);
+  const ctx: any = {
+    description: 'failed to trigger action',
+    candidates: sc,
+  };
+  return exec(sc.action).then(success, errorHandler(ctx));
+}
+
+function errorHandler(ctx: any): (err: Error) => void {
+  return function (err: Error): void {
+    console.log(ctx, err);
+    handleError(err);
+  };
+}
+
+function handleError(err: Error) {
+  domEchoArea.style.background = 'red';
+  domEchoArea.style.color = 'white';
+  domEchoArea.textContent = err.message;
+  domEchoArea.style.display = 'block';
+  updateWindowBounds();
+
+  domQuery.readOnly = false;
+
+  const kl = function () {
+    domEchoArea.style.display = 'none';
+    document.removeEventListener('keyup', kl);
+  };
+
+  document.addEventListener('keyup', kl);
 }
 
 function markSelected() {

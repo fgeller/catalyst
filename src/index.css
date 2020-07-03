@@ -70,3 +70,10 @@ body {
     color: #546E7A;
 }
 
+#echo-area {
+    display: none;
+    font-size: 0.75rem;
+    border-radius: 3px;
+    margin: 0.3rem 0.5rem;
+    padding: 0.5rem;
+}
