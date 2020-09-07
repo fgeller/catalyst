@@ -164,6 +164,7 @@ function setCandidates(cs: Candidate[]): void {
 
   for (let i = 0; i < cs.length; i++) {
     const o = document.createElement('div') as HTMLDivElement;
+    o.i = i;
     o.classList.add('candidate');
     if (i == selected) o.classList.add('selected');
 
@@ -176,6 +177,21 @@ function setCandidates(cs: Candidate[]): void {
     s.textContent = cs[i].source;
     s.classList.add('source');
     o.appendChild(s);
+
+    const storeMouseDown = function (ev: MouseEvent): any {
+      this.lastMouseDown = ev;
+    };
+    o.addEventListener('mousedown', storeMouseDown);
+
+    o.addEventListener('click', function (ev: MouseEvent) {
+      if (
+        ev.screenX == this.lastMouseDown.screenX &&
+        ev.screenY == this.lastMouseDown.screenY
+      ) {
+        selected = this.i;
+        trigger();
+      }
+    });
 
     domCandidates.push(o);
     container.appendChild(o);
