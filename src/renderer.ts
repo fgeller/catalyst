@@ -201,12 +201,13 @@ function trigger(): Promise<void> {
     setCandidates([]);
     domQuery.value = '';
     domQuery.readOnly = false;
-    hideWindow();
   };
   const ctx: any = {
     description: 'failed to trigger action',
     candidates: sc,
   };
+
+  hideWindow();
   return exec(sc.action).then(success, errorHandler(ctx));
 }
 
