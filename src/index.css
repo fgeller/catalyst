@@ -9,6 +9,8 @@ body {
   overflow: hidden;
   background: #90A4AE;
   color: #000000;
+  -webkit-user-select: none;
+  -webkit-app-region: drag;
 }
 
 #query-input {
