@@ -153,6 +153,11 @@ function updateCandidates(event: KeyboardEvent): Promise<void> {
   return findCandidates(q).then(setCandidates, errorHandler(ctx));
 }
 
+class CandidateDivElement extends HTMLDivElement {
+  i: number;
+  lastMouseDown: MouseEvent;
+}
+
 function setCandidates(cs: Candidate[]): void {
   candidates = cs;
 
@@ -163,7 +168,7 @@ function setCandidates(cs: Candidate[]): void {
   selected = 0;
 
   for (let i = 0; i < cs.length; i++) {
-    const o = document.createElement('div') as HTMLDivElement;
+    const o = document.createElement('div') as CandidateDivElement;
     o.i = i;
     o.classList.add('candidate');
     if (i == selected) o.classList.add('selected');
@@ -178,12 +183,14 @@ function setCandidates(cs: Candidate[]): void {
     s.classList.add('source');
     o.appendChild(s);
 
-    const storeMouseDown = function (ev: MouseEvent): any {
+    const storeMouseDown = function (ev: MouseEvent): void {
       this.lastMouseDown = ev;
     };
-    o.addEventListener('mousedown', storeMouseDown);
 
-    o.addEventListener('click', function (ev: MouseEvent) {
+    const triggerCandidate = function (
+      this: CandidateDivElement,
+      ev: MouseEvent
+    ): void {
       if (
         ev.screenX == this.lastMouseDown.screenX &&
         ev.screenY == this.lastMouseDown.screenY
@@ -191,7 +198,10 @@ function setCandidates(cs: Candidate[]): void {
         selected = this.i;
         trigger();
       }
-    });
+    };
+
+    o.addEventListener('mousedown', storeMouseDown);
+    o.addEventListener('click', triggerCandidate);
 
     domCandidates.push(o);
     container.appendChild(o);
