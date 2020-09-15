@@ -15,6 +15,7 @@ interface Source {
   command: string;
   action: string;
   unfiltered: boolean;
+  wait: boolean;
 }
 
 interface Config {
@@ -25,6 +26,7 @@ interface Candidate {
   value: string;
   source: string;
   action: string;
+  wait: boolean;
 }
 
 interface execResult {
@@ -86,6 +88,7 @@ function newCandidate(value: string, src: Source): Candidate {
     value: value,
     source: src.name,
     action: src.action.replace('%match%', value),
+    wait: src.wait,
   };
 }
 
@@ -212,6 +215,9 @@ function trigger(): Promise<void> {
   domQuery.readOnly = true;
 
   const success = (out: execResult) => {
+    if (sc.wait) {
+      hideWindow();
+    }
     setCandidates([]);
     domQuery.value = '';
     domQuery.readOnly = false;
@@ -221,7 +227,9 @@ function trigger(): Promise<void> {
     candidates: sc,
   };
 
-  hideWindow();
+  if (!sc.wait) {
+    hideWindow();
+  }
   return exec(sc.action).then(success, errorHandler(ctx));
 }
 
