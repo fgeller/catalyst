@@ -58,10 +58,8 @@ let selected: number = 0;
 
 function readConfig(): Config {
   const path: string = os.homedir() + '/.config/catalyst/config.yml';
-  console.log('path', path);
   let bytes: any = fs.readFileSync(path);
   let cfg = yaml.safeLoad(bytes) as Config;
-  console.log('config', cfg);
   return cfg;
 }
 
