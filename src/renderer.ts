@@ -1,5 +1,4 @@
 // TODO https://electronjs.org/docs/tutorial/security
-// TODO read config from file
 
 import './index.css';
 const util = require('util');
@@ -101,7 +100,6 @@ function findCandidates(q: string): Promise<Candidate[]> {
   let ps = config.sources.map(src => {
     const cmd = src.command.replace('%query%', q);
     return exec(cmd).then((out: execResult) => {
-      // TODO echo stdout/stderr?
       const raw = out.stdout.split('\n');
       const filtered = filter(q, raw, src);
       const limited = filtered.slice(0, 4);
