@@ -1,5 +1,3 @@
-// TODO https://electronjs.org/docs/tutorial/security
-
 import './index.css';
 const util = require('util');
 const fs = require('fs');
