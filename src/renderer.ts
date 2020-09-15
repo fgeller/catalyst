@@ -4,6 +4,7 @@
 import './index.css';
 const util = require('util');
 const fs = require('fs');
+const filepath = require('path');
 const yaml = require('js-yaml');
 const os = require('os');
 const exec = util.promisify(require('child_process').exec);
@@ -57,7 +58,12 @@ let domCandidates: HTMLDivElement[] = [];
 let selected: number = 0;
 
 function readConfig(): Config {
-  const path: string = os.homedir() + '/.config/catalyst/config.yml';
+  const path: string = filepath.join(
+    os.homedir(),
+    '.config',
+    'catalyst',
+    'config.yml'
+  );
   let bytes: any = fs.readFileSync(path);
   let cfg = yaml.safeLoad(bytes) as Config;
   return cfg;
