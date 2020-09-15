@@ -3,6 +3,9 @@
 
 import './index.css';
 const util = require('util');
+const fs = require('fs');
+const yaml = require('js-yaml');
+const os = require('os');
 const exec = util.promisify(require('child_process').exec);
 const {BrowserWindow} = require('electron').remote;
 
@@ -51,31 +54,16 @@ let candidates: Candidate[] = [];
 let domCandidates: HTMLDivElement[] = [];
 let selected: number = 0;
 
-const config: Config = {
-  sources: [
-    {
-      name: 'apps',
-      key: 'a',
-      unfiltered: false,
-      command: '/Users/fgeller/bin/list-apps',
-      action: '/usr/bin/open -a "%match%".app',
-    },
-    {
-      name: 'pass',
-      key: 'p',
-      unfiltered: false,
-      command: '/Users/fgeller/bin/pass-enumerate',
-      action: '/Users/fgeller/bin/pass-copy "%match%"',
-    },
-    {
-      name: 'calc',
-      key: 'c',
-      unfiltered: true,
-      command: '/Users/fgeller/bin/calc "%query%"',
-      action: 'echo %match% | /usr/bin/pbcopy',
-    },
-  ],
-};
+function readConfig(): Config {
+  const path: string = os.homedir() + '/.config/catalyst/config.yml';
+  console.log('path', path);
+  let bytes: any = fs.readFileSync(path);
+  let cfg = yaml.safeLoad(bytes) as Config;
+  console.log('config', cfg);
+  return cfg;
+}
+
+const config = readConfig();
 
 function filter(q: string, candidates: string[], src: Source): string[] {
   let result: string[] = candidates.map(v => v.trim()).filter(v => v != '');
