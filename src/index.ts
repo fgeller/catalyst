@@ -6,9 +6,12 @@ if (require('electron-squirrel-startup')) {
 }
 
 const createWindow = () => {
+  const winHeight = 58;
+  const winWidth = 400;
+
   const mainWindow = new BrowserWindow({
-    height: 58,
-    width: 400,
+    height: winHeight,
+    width: winWidth,
     webPreferences: {
       nodeIntegration: true,
       enableRemoteModule: true,
@@ -18,6 +21,10 @@ const createWindow = () => {
   });
 
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
+
+  mainWindow.webContents.on('dom-ready', function (ev) {
+    mainWindow.setBounds({height: winHeight, width: winWidth});
+  });
   // mainWindow.webContents.openDevTools();
 };
 
