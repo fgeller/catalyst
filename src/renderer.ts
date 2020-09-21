@@ -205,6 +205,53 @@ function setCandidates(cs: Candidate[]): void {
   updateWindowBounds();
 }
 
+class InputHistory {
+  history: Array<string>;
+  limit: number;
+  pointer: number;
+  reset: boolean;
+
+  constructor(limit: number) {
+    this.history = new Array<string>();
+    this.limit = limit;
+  }
+
+  push(c: string) {
+    if (this.history.length >= this.limit) {
+      this.history.shift();
+    }
+    this.reset = true;
+    this.history.push(c);
+  }
+
+  previous(): string {
+    return this.select(-1);
+  }
+
+  next(): string {
+    return this.select(1);
+  }
+
+  select(d: number): string {
+    if (this.history.length == 0) {
+      return null;
+    }
+
+    if (d > 0 && (this.reset || this.pointer == this.history.length - 1)) {
+      this.pointer = 0;
+    } else if (d < 0 && (this.reset || this.pointer == 0)) {
+      this.pointer = this.history.length - 1;
+    } else {
+      this.pointer = this.pointer + d;
+    }
+
+    this.reset = false;
+    return this.history[this.pointer];
+  }
+}
+
+const inputHistory = new InputHistory(100); // TODO magic number
+
 function trigger(): Promise<void> {
   if (candidates.length == 0) {
     console.log(`no candidates available, nothing to trigger`);
@@ -212,6 +259,7 @@ function trigger(): Promise<void> {
   }
 
   const sc = candidates[selected];
+  inputHistory.push(domQuery.value);
   domQuery.readOnly = true;
 
   const success = (out: execResult) => {
@@ -230,6 +278,7 @@ function trigger(): Promise<void> {
   if (!sc.wait) {
     hideWindow();
   }
+
   return exec(sc.action).then(success, errorHandler(ctx));
 }
 
@@ -286,7 +335,28 @@ function select(ev: KeyboardEvent): Promise<void> {
   return Promise.resolve();
 }
 
+function previousInput() {
+  domQuery.value = inputHistory.previous();
+}
+function nextInput() {
+  domQuery.value = inputHistory.next();
+}
+
 function queryKeyUp(ev: KeyboardEvent): Promise<void> {
+  if (ev.altKey) {
+    // TODO move into history func
+    switch (ev.code) {
+      case 'ArrowDown':
+        nextInput();
+        updateCandidates(ev);
+        return;
+      case 'ArrowUp':
+        previousInput();
+        updateCandidates(ev);
+        return;
+    }
+  }
+
   switch (ev.key) {
     case 'Control':
     case 'Meta':
