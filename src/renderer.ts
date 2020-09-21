@@ -242,7 +242,7 @@ class InputHistory {
     } else if (d < 0 && (this.reset || this.pointer == 0)) {
       this.pointer = this.history.length - 1;
     } else {
-      this.pointer = this.pointer + d;
+      this.pointer += d;
     }
 
     this.reset = false;
@@ -343,20 +343,6 @@ function nextInput() {
 }
 
 function queryKeyUp(ev: KeyboardEvent): Promise<void> {
-  if (ev.altKey) {
-    // TODO move into history func
-    switch (ev.code) {
-      case 'ArrowDown':
-        nextInput();
-        updateCandidates(ev);
-        return;
-      case 'ArrowUp':
-        previousInput();
-        updateCandidates(ev);
-        return;
-    }
-  }
-
   switch (ev.key) {
     case 'Control':
     case 'Meta':
@@ -383,5 +369,21 @@ function queryKeyUp(ev: KeyboardEvent): Promise<void> {
   updateCandidates(ev);
 }
 
+function queryKeyDown(ev: KeyboardEvent): Promise<void> {
+  if (ev.metaKey) {
+    switch (ev.code) {
+      case 'KeyN':
+        nextInput();
+        updateCandidates(ev);
+        return;
+      case 'KeyP':
+        previousInput();
+        updateCandidates(ev);
+        return;
+    }
+  }
+}
+
+domQuery.addEventListener('keydown', queryKeyDown);
 domQuery.addEventListener('keyup', queryKeyUp);
 domQuery.focus();
