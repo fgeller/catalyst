@@ -95,7 +95,32 @@ function newCandidate(value: string, src: Source): Candidate {
 
 function findCandidates(q: string): Promise<Candidate[]> {
   let all: Candidate[] = [];
-  let ps = config.sources.map(src => {
+  let sources = config.sources;
+  const keyMatch = config.sources.find((s: Source) => {
+    // "k" == "k"
+    // "k" !== "kool"
+    // "k" === "k ool"
+    const tq = q.trim();
+
+    if (s.key === tq) {
+      return true;
+    }
+
+    const fw = tq.indexOf(' ');
+    if (fw === -1) {
+      return false;
+    }
+
+    return s.key === tq.substring(0, fw);
+  });
+
+  let srcs = config.sources;
+  if (keyMatch !== undefined) {
+    srcs = [keyMatch];
+    q = q.trim().substring(keyMatch.key.length).trim();
+  }
+
+  let ps = srcs.map(src => {
     const cmd = src.command.replace('%query%', q);
     return exec(cmd).then((out: execResult) => {
       const raw = out.stdout.split('\n');
@@ -136,10 +161,7 @@ function getQueryWindow(): BrowserWindow {
 
 function updateCandidates(event: KeyboardEvent): Promise<void> {
   const q = domQuery.value;
-  const ctx: any = {
-    description: 'failed to update the candidates',
-    query: q,
-  };
+  const ctx = {description: 'failed to update the candidates', query: q};
 
   return findCandidates(q).then(setCandidates, errorHandler(ctx));
 }
