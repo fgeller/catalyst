@@ -6,37 +6,42 @@ import {
   Tray,
   globalShortcut,
 } from 'electron';
+
 declare const MAIN_WINDOW_WEBPACK_ENTRY: any;
 const path = require('path');
+const assetsPath = app.isPackaged
+  ? path.join(process.resourcesPath, 'assets')
+  : 'assets';
 
-if (require('electron-squirrel-startup')) {
-  app.quit();
-}
+const winHeight = 58;
+const winWidth = 400;
 
 let tray: Tray = null;
 
-const createWindow = () => {
-  const assetsPath = app.isPackaged
-    ? path.join(process.resourcesPath, 'assets')
-    : 'assets';
-
+function createTray(): void {
   const imgPath = path.join(process.resourcesPath, 'tray.png');
-  console.log('imgPath', imgPath);
   let image = nativeImage.createFromPath(imgPath);
 
   tray = new Tray(image);
   tray.setToolTip('catalyst');
   tray.setContextMenu(Menu.buildFromTemplate([]));
+  tray.on('click', () => activate());
+}
 
-  tray.on('click', function (ev) {
-    console.log('click tray', ev);
-    activate();
-  });
+function setWindowBounds() {
+  getMainWindow()?.setBounds({height: winHeight, width: winWidth});
+}
 
-  console.log('tray', tray);
+function getMainWindow(): BrowserWindow | null {
+  const wins = BrowserWindow.getAllWindows();
+  if (wins.length === 0) {
+    return null;
+  } else {
+    return wins[0];
+  }
+}
 
-  const winHeight = 58;
-  const winWidth = 400;
+function createWindow(): void {
   const mainWindow = new BrowserWindow({
     height: winHeight,
     width: winWidth,
@@ -44,37 +49,38 @@ const createWindow = () => {
       nodeIntegration: true,
       enableRemoteModule: true,
     },
-    title: 'launcher',
+    title: 'catalyst',
     frame: false,
   });
 
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
-
-  mainWindow.webContents.on('dom-ready', function (ev) {
-    mainWindow.setBounds({height: winHeight, width: winWidth});
-  });
-  // mainWindow.webContents.openDevTools();
-};
+  mainWindow.webContents.on('dom-ready', setWindowBounds);
+}
 
 function activate(): void {
-  const wins = BrowserWindow.getAllWindows();
-  if (wins.length === 0) createWindow();
-  else wins[0].show();
+  const win = getMainWindow();
+  if (win === null) {
+    createWindow();
+  } else {
+    win.show();
+  }
+}
+
+function quit(): void {
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
 }
 
 function ready(): void {
   globalShortcut.register('CommandOrControl+Space', activate);
-
-  if (app.dock) {
-    //app.dock.hide();
-  }
+  createTray();
   createWindow();
 }
 
-function quit(): void {
-  if (process.platform !== 'darwin') app.quit();
+if (require('electron-squirrel-startup')) {
+  app.quit();
 }
-
 app.on('window-all-closed', quit);
 app.on('activate', activate);
 app.on('ready', ready);
