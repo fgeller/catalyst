@@ -20,7 +20,12 @@
   "config": {
     "forge": {
       "packagerConfig": {
-        "icon": "icon.icns"
+        "icon": "./src/assets/icons/mac/icon.icns",
+        "extraResource": [
+          "./src/assets/tray.png",
+          "./src/assets/tray@1x.png",
+          "./src/assets/tray@2x.png"
+        ]
       },
       "makers": [
         {
