@@ -339,20 +339,22 @@ function markSelected() {
   }
 }
 
+function selectPrevious() {
+  if (selected == 0) return;
+  selected -= 1;
+  markSelected();
+}
+function selectNext() {
+  if (selected >= domCandidates.length - 1) return;
+  selected += 1;
+  markSelected();
+}
+
 function select(ev: KeyboardEvent): Promise<void> {
-  switch (ev.key) {
-    case 'ArrowLeft':
-    case 'ArrowUp':
-      if (selected == 0) return;
-      selected -= 1;
-      markSelected();
-      break;
-    case 'ArrowRight':
-    case 'ArrowDown':
-      if (selected >= domCandidates.length - 1) return;
-      selected += 1;
-      markSelected();
-      break;
+  if (ev.key === 'ArrowUp' || (ev.ctrlKey && ev.key === 'p')) {
+    selectPrevious();
+  } else if (ev.key === 'ArrowDown' || (ev.ctrlKey && ev.key === 'n')) {
+    selectNext();
   }
   return Promise.resolve();
 }
@@ -381,6 +383,12 @@ function queryKeyUp(ev: KeyboardEvent): Promise<void> {
     case 'ArrowUp':
     case 'ArrowLeft':
       return select(ev);
+
+    case 'n':
+    case 'p':
+      if (ev.ctrlKey) {
+        return select(ev);
+      }
   }
 
   if (domQuery.value.trim() == '') {
