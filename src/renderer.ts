@@ -5,16 +5,16 @@ const fs = require('fs');
 const filepath = require('path');
 const yaml = require('js-yaml');
 const os = require('os');
-const exec = util.promisify(require('child_process').exec);
+const execFile = util.promisify(require('child_process').execFile);
 const {BrowserWindow} = require('electron').remote;
 
 interface Source {
   name: string;
   key: string;
-  command: string;
-  action: string;
+  command: string[];
+  action: string[];
   unfiltered: boolean;
-  wait: boolean;
+  timeout: number;
 }
 
 interface Config {
@@ -24,8 +24,8 @@ interface Config {
 interface Candidate {
   value: string;
   source: string;
-  action: string;
-  wait: boolean;
+  action: string[];
+  timeout: number;
 }
 
 interface execResult {
@@ -86,11 +86,12 @@ function filter(q: string, candidates: string[], src: Source): string[] {
 }
 
 function newCandidate(value: string, src: Source): Candidate {
+  const re = /%match%/gi;
   return {
     value: value,
     source: src.name,
-    action: src.action.replace('%match%', value),
-    wait: src.wait,
+    action: src.action.map(s => s.replace(re, value)),
+    timeout: src.timeout,
   };
 }
 
@@ -122,8 +123,9 @@ function findCandidates(q: string): Promise<Candidate[]> {
   }
 
   let ps = srcs.map(src => {
-    const cmd = src.command.replace('%query%', q);
-    return exec(cmd).then((out: execResult) => {
+    const re = /%query%/gi;
+    const cmd = src.command.map(s => s.replace(re, q));
+    return execFile(cmd[0], cmd.slice(1)).then((out: execResult) => {
       const raw = out.stdout.split('\n');
       const filtered = filter(q, raw, src);
       const limited = filtered.slice(0, 4);
@@ -286,7 +288,7 @@ function trigger(): Promise<void> {
   domQuery.readOnly = true;
 
   const success = (out: execResult) => {
-    if (sc.wait) {
+    if (sc.timeout > 0) {
       hideWindow();
     }
     setCandidates([]);
@@ -298,11 +300,14 @@ function trigger(): Promise<void> {
     candidates: sc,
   };
 
-  if (!sc.wait) {
+  if (sc.timeout == 0) {
     hideWindow();
   }
 
-  return exec(sc.action).then(success, errorHandler(ctx));
+  return execFile(sc.action[0], sc.action.slice(1), {timeout: sc.timeout}).then(
+    success,
+    errorHandler(ctx)
+  );
 }
 
 function errorHandler(ctx: any): (err: Error) => void {
