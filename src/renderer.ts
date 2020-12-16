@@ -41,8 +41,8 @@ interface WindowBounds {
 }
 
 interface BrowserWindow {
+  getBounds(): WindowBounds;
   setBounds(bounds: WindowBounds, animate?: boolean): void;
-  getContentSize(): number[];
   hide(): void;
 }
 
@@ -97,7 +97,6 @@ function newCandidate(value: string, src: Source): Candidate {
 
 function findCandidates(q: string): Promise<Candidate[]> {
   let all: Candidate[] = [];
-  let sources = config.sources;
   const keyMatch = config.sources.find((s: Source) => {
     // "k" == "k"
     // "k" !== "kool"
@@ -148,11 +147,9 @@ function updateWindowBounds(): void {
       candidates.length * (domCandidates[0].clientHeight + 5.4)
     );
   }
-
   if ('block' === domEchoArea.style.display) {
     height += domEchoArea.clientHeight;
   }
-
   const win = getQueryWindow();
   win.setBounds({height: height}, true);
 }
