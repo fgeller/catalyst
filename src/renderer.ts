@@ -151,8 +151,15 @@ function updateWindowBounds(): void {
   if ('block' === domEchoArea.style.display) {
     height += domEchoArea.clientHeight;
   }
+  // 🤷 https://github.com/electron/electron/issues/9477
+  // TODO do this only for Linux? and scale level?
   const win = getQueryWindow();
-  win.setBounds({height: height}, true);
+  let bounds = win.getBounds();
+  bounds.x = bounds.x + 1;
+  bounds.y = bounds.y + 1;
+  bounds.width = bounds.width - 2;
+  bounds.height = height - 2;
+  win.setBounds(bounds);
 }
 
 function getQueryWindow(): BrowserWindow {
