@@ -1,12 +1,12 @@
 import './index.css';
-// TODO require vs import?
-const util = require('util');
-const fs = require('fs');
-const filepath = require('path');
-const yaml = require('js-yaml');
-const os = require('os');
-const execFile = util.promisify(require('child_process').execFile);
-const {BrowserWindow} = require('electron').remote;
+import {promisify} from 'util';
+import {readFileSync} from 'fs';
+import {join as pathJoin} from 'path';
+import {safeLoad} from 'js-yaml';
+import {homedir} from 'os';
+import {execFile as execFileCallback} from 'child_process';
+const execFile = promisify(execFileCallback);
+import {remote} from 'electron';
 
 interface Source {
   name: string;
@@ -57,14 +57,9 @@ let selected: number = 0;
 
 function readConfig(): Config {
   // TODO fail gracefully when file is missing
-  const path: string = filepath.join(
-    os.homedir(),
-    '.config',
-    'catalyst',
-    'config.yml'
-  );
-  let bytes: any = fs.readFileSync(path);
-  let cfg = yaml.safeLoad(bytes) as Config;
+  const path: string = pathJoin(homedir(), '.config', 'catalyst', 'config.yml');
+  let bytes: any = readFileSync(path);
+  let cfg = safeLoad(bytes) as Config;
   return cfg;
 }
 
@@ -163,7 +158,7 @@ function updateWindowBounds(): void {
 }
 
 function getQueryWindow(): BrowserWindow {
-  const wins = BrowserWindow.getAllWindows();
+  const wins = remote.BrowserWindow.getAllWindows();
   return wins[0];
 }
 
