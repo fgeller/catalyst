@@ -56,6 +56,7 @@ let domCandidates: HTMLDivElement[] = [];
 let selected: number = 0;
 
 function readConfig(): Config {
+  // TODO fail gracefully when file is missing
   const path: string = filepath.join(
     os.homedir(),
     '.config',
