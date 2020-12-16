@@ -59,7 +59,7 @@ function createWindow(): void {
 
 function activate(): void {
   const win = getMainWindow();
-  if (win === null) {
+  if (win === null || win === undefined) {
     createWindow();
   } else {
     win.show();
