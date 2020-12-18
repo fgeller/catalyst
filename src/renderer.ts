@@ -4,15 +4,18 @@ import {readFileSync} from 'fs';
 import {join as pathJoin} from 'path';
 import {safeLoad} from 'js-yaml';
 import {homedir} from 'os';
+import {remote} from 'electron';
 import {execFile as execFileCallback} from 'child_process';
 const execFile = promisify(execFileCallback);
-import {remote} from 'electron';
+import {spawn} from 'child_process';
 
 interface Source {
   name: string;
   key: string;
   command: string[];
   action: string[];
+  actionType: string;
+
   unfiltered: boolean;
   timeout: number;
 }
@@ -25,12 +28,17 @@ interface Candidate {
   value: string;
   source: string;
   action: string[];
+  actionType: string;
   timeout: number;
 }
 
 interface execResult {
   stdout: string;
   stderr: string;
+}
+
+interface childProcess {
+  unref(): void;
 }
 
 interface WindowBounds {
@@ -87,6 +95,7 @@ function newCandidate(value: string, src: Source): Candidate {
     value: value,
     source: src.name,
     action: src.action.map(s => s.replace(re, value)),
+    actionType: src.actionType,
     timeout: src.timeout,
   };
 }
@@ -120,7 +129,7 @@ function findCandidates(q: string): Promise<Candidate[]> {
   let ps = srcs.map(src => {
     const re = /%query%/gi;
     const cmd = src.command.map(s => s.replace(re, q));
-    return execFile(cmd[0], cmd.slice(1)).then((out: execResult) => {
+    return execFile(cmd[0], cmd.slice(1), {}).then((out: execResult) => {
       const raw = out.stdout.split('\n');
       const filtered = filter(q, raw, src);
       const limited = filtered.slice(0, 4);
@@ -300,14 +309,33 @@ function trigger(): Promise<void> {
     candidates: sc,
   };
 
-  if (sc.timeout == 0) {
+  console.log(sc);
+  if (sc.timeout === 0) {
     hideWindow();
+    domQuery.readOnly = false;
   }
 
-  return execFile(sc.action[0], sc.action.slice(1), {timeout: sc.timeout}).then(
-    success,
-    errorHandler(ctx)
-  );
+  if (sc.actionType === 'spawn') {
+    console.log('spawning');
+    const sp = spawn(sc.action[0], sc.action.slice(1), {
+      detached: true,
+      stdio: 'ignore',
+    });
+    sp.unref();
+    // TODO on error
+
+    if (sc.timeout > 0) {
+      hideWindow();
+    }
+    setCandidates([]);
+    domQuery.value = '';
+    domQuery.readOnly = false;
+    return Promise.resolve();
+  } else {
+    return execFile(sc.action[0], sc.action.slice(1), {
+      timeout: sc.timeout,
+    }).then(success, errorHandler(ctx));
+  }
 }
 
 function errorHandler(ctx: any): (err: Error) => void {
